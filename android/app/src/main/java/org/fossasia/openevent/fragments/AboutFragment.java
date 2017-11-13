@@ -1,9 +1,6 @@
 package org.fossasia.openevent.fragments;
 
-import android.animation.ObjectAnimator;
 import android.annotation.TargetApi;
-import android.content.Intent;
-import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
@@ -14,10 +11,20 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Bundle;
+import android.support.design.widget.Snackbar;
+import android.support.v7.app.AlertDialog;
+import android.text.Html;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.TextView;
-
+import android.widget.Toast;
+import android.widget.LinearLayout;
 import com.squareup.otto.Subscribe;
 
 import org.fossasia.openevent.OpenEventApp;
@@ -27,14 +34,21 @@ import org.fossasia.openevent.adapters.GlobalSearchAdapter;
 import org.fossasia.openevent.adapters.SocialLinksListAdapter;
 import org.fossasia.openevent.data.Event;
 import org.fossasia.openevent.data.Session;
+import org.fossasia.openevent.data.extras.Copyright;
 import org.fossasia.openevent.data.extras.EventDates;
 import org.fossasia.openevent.data.extras.SocialLink;
+import org.fossasia.openevent.data.extras.SpeakersCall;
 import org.fossasia.openevent.dbutils.RealmDataRepository;
 import org.fossasia.openevent.events.BookmarkChangedEvent;
 import org.fossasia.openevent.events.EventLoadedEvent;
 import org.fossasia.openevent.utils.DateConverter;
+import org.fossasia.openevent.utils.Utils;
 import org.fossasia.openevent.utils.Views;
 import org.threeten.bp.format.DateTimeParseException;
+
+import android.view.animation.LinearInterpolator;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.TranslateAnimation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,6 +87,9 @@ public class AboutFragment extends BaseFragment {
     protected TextView bookmarkHeader;
     @BindView(R.id.event_details_header)
     protected TextView eventDetailsHeader;
+    @BindView(R.id.slidin_down_part)
+    protected LinearLayout slidinDownPart;
+
 
     private ArrayList<String> dateList = new ArrayList<>();
 
@@ -173,18 +190,33 @@ public class AboutFragment extends BaseFragment {
 
     @TargetApi(16)
     void collapseExpandTextView() {
+        //translation animation of event bar
+        TranslateAnimation eventBarDownDirection  = new TranslateAnimation(0, 0, -eventDescription.getHeight(), 0);
+        eventBarDownDirection.setInterpolator(new LinearInterpolator());
+        eventBarDownDirection.setDuration(300);
+
+        TranslateAnimation eventBarUpDirection  = new TranslateAnimation(0, 0, eventDescription.getHeight(), 0);
+        eventBarUpDirection.setInterpolator(new LinearInterpolator());
+        eventBarUpDirection.setDuration(300);
+
+        //fading in or out of content
+        AlphaAnimation contentAppear = new AlphaAnimation(0, 1);
+        AlphaAnimation contentDisappear = new AlphaAnimation(1, 0);
+
         if (eventDescription.getVisibility() == View.GONE) {
-            // it's collapsed - expand it
+            // it's collapsed - expand it.
+            slidinDownPart.startAnimation(eventBarDownDirection);
+            eventDescription.startAnimation(contentAppear);
             eventDescription.setVisibility(View.VISIBLE);
             descriptionImg.setImageResource(R.drawable.ic_expand_less_black_24dp);
+
         } else {
-            // it's expanded - collapse it
+            // it's expanded - collapse it.
+            slidinDownPart.startAnimation(eventBarUpDirection);
+            eventDescription.startAnimation(contentDisappear);
             eventDescription.setVisibility(View.GONE);
             descriptionImg.setImageResource(R.drawable.ic_expand_more_black_24dp);
         }
-
-        ObjectAnimator animation = ObjectAnimator.ofInt(eventDescription, "maxLines", eventDescription.getMaxLines());
-        animation.setDuration(200).start();
     }
 
     @Override
@@ -197,11 +229,77 @@ public class AboutFragment extends BaseFragment {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
 
-        // Start Search activity if search icon is clicked
-        if (item.getItemId() == R.id.action_search_home)
-            startActivity(new Intent(getContext(), SearchActivity.class));
+        switch (item.getItemId()){
+            case R.id.action_search_home:
+                startActivity(new Intent(getContext(), SearchActivity.class));
+                break;
+            case R.id.action_ticket_home:
+                if (!event.isValid()) {
+                    Snackbar.make(getView(), R.string.info_not_available, Snackbar.LENGTH_SHORT).show();
+                    break;
+                }
+                Utils.setUpCustomTab(getContext(), event.getTicketUrl());
+                break;
+            case R.id.action_display_copyright_dialog:
+                displayCopyrightInformation();
+                break;
+            case R.id.action_display_speakers_call_dialog:
+                displaySpeakersCallInformation();
+            default:
+                //No option selected. Do Nothing..
+        }
 
         return true;
+    }
+
+    private void displayCopyrightInformation() {
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(getContext());
+        LayoutInflater inflater = this.getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.copyright_dialog, null);
+        dialogBuilder.setView(dialogView).setPositiveButton("Back", (dialog, which) -> dialog.cancel());
+        TextView holder = (TextView) dialogView.findViewById(R.id.holder_textview);
+        TextView licence = (TextView) dialogView.findViewById(R.id.licence);
+        TextView licenceurl = (TextView) dialogView.findViewById(R.id.licence_url);
+        if (event.isValid() && event.getEventCopyright().isValid()) {
+            Copyright copyright = event.getEventCopyright();
+            licence.setText(copyright.getLicence() + " " + String.valueOf(copyright.getYear()));
+            holder.setText(copyright.getHolder());
+            String linkedurl = String.format("<a href=\"%s\">" + copyright.getLicenceUrl() + "</a> ", copyright.getLicenceUrl());
+            licenceurl.setText(Html.fromHtml(linkedurl));
+            licenceurl.setOnClickListener(view -> Utils.setUpCustomTab(getContext(), copyright.getLicenceUrl()));
+            AlertDialog alertDialog = dialogBuilder.create();
+            alertDialog.show();
+        } else {
+            Snackbar.make(getView(), R.string.info_not_available, Snackbar.LENGTH_SHORT).show();
+        }
+    }
+
+    private void displaySpeakersCallInformation() {
+        AlertDialog.Builder dialogBuilder  = new AlertDialog.Builder(getContext());
+        LayoutInflater inflater = this.getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.speakers_call_dialog, null);
+        TextView holder = (TextView) dialogView.findViewById(R.id.holder_textview);
+        TextView announcement = (TextView) dialogView.findViewById(R.id.announcement);
+        TextView fromDateOfEvent = (TextView) dialogView.findViewById(R.id.from_date_textview);
+        TextView toDateOfEvent = (TextView) dialogView.findViewById(R.id.to_date_textview);
+
+        SpeakersCall speakersCall = event.getSpeakersCall();
+        holder.setText(event.getEventCopyright().getHolder());
+        String announcementString = Html.fromHtml(speakersCall.getAnnouncement()).toString();
+        announcement.setText(announcementString + "at " + event.getEmail());
+        int index = speakersCall.getStartsAt().indexOf("T");
+        toDateOfEvent.setText("To: " + speakersCall.getStartsAt().substring(0, index));
+        fromDateOfEvent.setText("From: " + speakersCall.getEndsAt().substring(0, index));
+        dialogBuilder.setView(dialogView).setNegativeButton("Back", (dialog, which) -> dialog.cancel());
+        dialogBuilder.setPositiveButton("Copy Email",
+                (dialog, which) -> {
+                    ClipboardManager clipboard = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText("Email", event.getEmail());
+                    clipboard.setPrimaryClip(clip);
+                    Toast.makeText(getContext().getApplicationContext(), "Email copied to clipboard", Toast.LENGTH_SHORT).show();
+                });
+        AlertDialog alertDialog = dialogBuilder.create();
+        alertDialog.show();
     }
 
     @Subscribe

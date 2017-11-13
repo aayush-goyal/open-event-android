@@ -29,7 +29,7 @@
     <string name="first_name">First Name</string>
     <string name="last_name">Last Name</string>
     <string name="avatar">Avatar</string>
-
+    <string name="transition_speaker_to_activity">transit_speaker</string>
     <string name="error_email_required">Email is required</string>
     <string name="error_enter_valid_email">Enter a valid email</string>
     <string name="error_password_required">Password is required</string>
@@ -128,6 +128,7 @@
     <string name="share">Share</string>
     <string name="add_to_calendar">Add to Calendar</string>
     <string name="upcoming">Upcoming</string>
+    <string name="ticket">Get Tickets</string>
 
     <!--Search Titles-->
     <string name="global_search_hint">Search App</string>
@@ -137,6 +138,8 @@
     <string name="download_complete">Download Done</string>
     <string name="share_links">Sharing URL</string>
     <string name="time_not_specified">Timings not specified</string>
+    <string name="no_results">No Results</string>
+    <string name="no_results_found">No Results Found</string>
 
     <!--Error Titles-->
     <string name="no_internet_connection">No Internet connection</string>
@@ -199,14 +202,17 @@
     <string name="noTracks">No Tracks yet!</string>
     <string name="noFeed">No Posts yet!</string>
     <string name="charges_warning">Data charges may apply</string>
-    <string name="tracks">Track:</string>
-    <string name="date">Date:</string>
-    <string name="start_time">Start Time:</string>
-    <string name="end_time">End Time:</string>
-    <string name="location">Location:</string>
+    <string name="tracks">Track</string>
+    <string name="dot_session">:&#160;</string>
+    <string name="date">Date</string>
+    <string name="duration">Duration</string>
+    <string name="start_time">Start Time</string>
+    <string name="end_time">End Time</string>
+    <string name="location">Location</string>
     <string name="speakers">Speaker</string>
     <string name="upcoming_sess">Upcoming session: </string>
     <string name="no_upcoming_Sess">No upcoming sessions</string>
+    <string name="dash">&#160;-&#160;</string>
 
     <!-- Sponsor types strings-->
     <string name="platinum">Platinum</string>
@@ -271,6 +277,7 @@
     <string name="more_details">For more details check </string>
     <string name="social_links">Social Links</string>
     <string name="social_link">Social Link</string>
+    <string name="info_not_available">Information not available.</string>
 
     <string name="location_not_decided">Not decided yet</string>
     <string name="result_type">Result Type</string>
